@@ -1,0 +1,46 @@
+<h1>Login</h1>
+
+<form id="login-form">
+  <input type="email" id="email" placeholder="Email" required />
+  <input type="password" id="password" placeholder="Password" required />
+  <button type="submit">Login</button>
+</form>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const loginForm = document.getElementById('login-form');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault(); // Prevent default form submission
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        alert('Please enter both email and password.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.token) {
+          localStorage.setItem('token', data.token); // ✅ Store token for later use
+          console.log('Login successful. Token saved:', data.token); // 🐞 Debug
+          window.location.href = '/'; // ✅ Redirect to home after login
+        } else {
+          alert(data.message || 'Invalid credentials. Please try again.');
+        }
+      } catch (error) {
+        console.error('Login request failed:', error);
+        alert('Something went wrong. Please try again later.');
+      }
+    });
+  });
+</script>

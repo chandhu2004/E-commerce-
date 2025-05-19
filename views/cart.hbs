@@ -1,0 +1,141 @@
+<h1>Your Cart</h1>
+
+<div id="cart-items"></div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+      alert('Please log in to view your cart.');
+      window.location.href = '/login';
+      return;
+    }
+
+    try {
+      const response = await fetch('/cart/view', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      const cartItems = await response.json();
+
+      if (!Array.isArray(cartItems) || cartItems.length === 0) {
+        document.getElementById('cart-items').innerHTML = '<p>Your cart is empty</p>';
+        return;
+      }
+
+      let cartHtml = '';
+      cartItems.forEach(item => {
+        let imageUrl = item.imagePath.startsWith('/uploads/') 
+          ? item.imagePath 
+          : `/uploads/${item.imagePath.replace(/^uploads[\\/]/, '')}`;
+
+        cartHtml += `
+          <div class="cart-item" data-id="${item.productId}" style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+            <h3>${item.name}</h3>
+            <img src="${imageUrl}" alt="Product Image" width="150">
+            <p>₹${item.price} | Quantity:
+              <button class="decrease-btn">-</button>
+              <input type="number" class="quantity-input" value="${item.quantity}" min="1" />
+              <button class="increase-btn">+</button>
+            </p>
+            <button class="remove-btn">Remove</button>
+          </div>
+        `;
+      });
+
+      document.getElementById('cart-items').innerHTML = cartHtml;
+
+      // Add functionality
+      document.querySelectorAll('.cart-item').forEach(item => {
+        const productId = item.getAttribute('data-id');
+        const input = item.querySelector('.quantity-input');
+        const incBtn = item.querySelector('.increase-btn');
+        const decBtn = item.querySelector('.decrease-btn');
+        const removeBtn = item.querySelector('.remove-btn');
+
+        incBtn.addEventListener('click', () => {
+          input.value = parseInt(input.value) + 1;
+          updateQuantity(productId, input.value);
+        });
+
+        decBtn.addEventListener('click', () => {
+          if (parseInt(input.value) > 1) {
+            input.value = parseInt(input.value) - 1;
+            updateQuantity(productId, input.value);
+          }
+        });
+
+        input.addEventListener('change', () => {
+          if (parseInt(input.value) > 0) {
+            updateQuantity(productId, input.value);
+          } else {
+            alert("Quantity must be at least 1");
+            input.value = 1;
+          }
+        });
+
+        removeBtn.addEventListener('click', () => {
+          removeFromCart(productId);
+        });
+      });
+
+    } catch (error) {
+      console.error('Error fetching cart items:', error);
+      alert('Failed to fetch cart items');
+    }
+  });
+
+  // Update quantity function
+  async function updateQuantity(productId, quantity) {
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch(`/cart/update/${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quantity: parseInt(quantity) }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        alert(result.message || 'Failed to update quantity');
+      }
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      alert('Error updating quantity');
+    }
+  }
+
+  // ✅ Remove from cart function
+  async function removeFromCart(productId) {
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await fetch('/cart/remove', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productId }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(result.message);
+        location.reload(); // Refresh to reflect removal
+      } else {
+        alert(result.message || 'Failed to remove item');
+      }
+    } catch (error) {
+      console.error('Error removing item:', error);
+      alert('Error removing item');
+    }
+  }
+</script>

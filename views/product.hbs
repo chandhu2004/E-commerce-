@@ -1,0 +1,119 @@
+<h1>All Products</h1>
+
+<a href="/cart"><button>View Cart</button></a>
+
+<!-- ✅ Only ONE wrapper for all product cards -->
+<div class="product-list">
+  {{#each products}}
+    <div class="product-card">
+      <h2>{{this.name}}</h2>
+      <img src="/{{this.imagePath}}" alt="Product Image" width="150">
+
+      <p>₹{{this.price}} | In Stock: {{this.stock}}</p>
+      <p>{{this.description}}</p>
+
+      <!-- Add to Cart Form -->
+      <form class="add-to-cart-form" data-id="{{this._id}}">
+        <input type="hidden" name="productId" value="{{this._id}}">
+        <input type="number" name="quantity" value="1" min="1" max="{{this.stock}}" required>
+        <button type="submit">Add to Cart</button>
+      </form>
+
+      <!-- Edit and Delete Buttons -->
+      <button class="edit-btn" data-id="{{this._id}}">Edit</button>
+      <button class="delete-btn" data-id="{{this._id}}">Delete</button>
+    </div>
+  {{/each}}
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('You need to log in to view products!');
+      window.location.href = '/login';
+      return;
+    }
+
+    // Add to cart handler
+    document.querySelectorAll('.add-to-cart-form').forEach(form => {
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const productId = form.querySelector('[name="productId"]').value;
+        const quantity = parseInt(form.querySelector('[name="quantity"]').value, 10);
+        const maxStock = parseInt(form.querySelector('[name="quantity"]').max, 10);
+        if (quantity > maxStock) {
+          alert('Sorry, not enough stock available.');
+          return;
+        }
+
+        const button = form.querySelector('button');
+        button.disabled = true;
+        button.textContent = 'Adding...';
+
+        try {
+          const res = await fetch('/cart/add', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ productId, quantity })
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+            alert(data.message);
+            const productStockElement = form.closest('.product-card').querySelector('p');
+            const currentStock = parseInt(productStockElement.textContent.match(/In Stock: (\d+)/)[1], 10);
+            const updatedStock = currentStock - quantity;
+            const priceText = productStockElement.textContent.split('|')[0].trim();
+            productStockElement.textContent = `${priceText} | In Stock: ${updatedStock}`;
+          } else {
+            alert(data.message || 'Failed to add to cart');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error adding to cart.');
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Add to Cart';
+        }
+      });
+    });
+
+    // Delete handler
+    document.querySelectorAll('.delete-btn').forEach(button => {
+      button.addEventListener('click', async () => {
+        const productId = button.dataset.id;
+        if (!confirm('Are you sure you want to delete this product?')) return;
+
+        try {
+          const res = await fetch(`/product/delete/${productId}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Failed to delete.');
+
+          alert(data.message || 'Product deleted.');
+          button.closest('.product-card').remove();
+        } catch (err) {
+          console.error('Delete error:', err);
+          alert('Error deleting product.');
+        }
+      });
+    });
+
+    // Edit handler
+    document.querySelectorAll('.edit-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const productId = button.dataset.id;
+        window.location.href = `/product/update/${productId}`;
+      });
+    });
+  });
+</script>

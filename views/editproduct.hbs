@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit Product - {{title}}</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://trusted-images.com; script-src 'self' 'unsafe-inline' https://trusted-scripts.com;">
+</head>
+<body>
+    <h1>{{title}}</h1>
+
+    {{#if successMessage}}
+        <div style="color: green; font-weight: bold;">
+            {{successMessage}}
+        </div>
+    {{/if}}
+
+    {{#if errorMessage}}
+        <div style="color: red; font-weight: bold;">
+            {{errorMessage}}
+        </div>
+    {{/if}}
+
+    <form action="/product/update/{{product._id}}?_method=PUT" method="POST" enctype="multipart/form-data">
+        <label for="name">Product Name:</label>
+        <input type="text" id="name" name="name" value="{{product.name}}" required />
+        <br><br>
+
+        <label for="price">Price:</label>
+        <input type="number" id="price" name="price" value="{{product.price}}" required />
+        <br><br>
+
+        <label for="stock">Stock:</label>
+        <input type="number" id="stock" name="stock" value="{{product.stock}}" required />
+        <br><br>
+
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" rows="4" cols="50">{{product.description}}</textarea>
+        <br><br>
+
+        {{#if product.imagePath}}
+            <div>
+                <p>Current Image:</p>
+                <img src="/{{product.imagePath}}" alt="Current Product Image" width="150" />
+            </div>
+        {{/if}}
+
+        <label for="image">Change Image:</label>
+        <input type="file" id="image" name="image" accept="image/*" />
+        <br><br>
+
+        <button type="submit">Update Product</button>
+        <button type="button" onclick="window.location.href='/'">Cancel</button>
+    </form>
+</body>
+</html>
